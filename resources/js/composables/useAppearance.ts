@@ -2,7 +2,7 @@ import { onMounted, ref } from 'vue';
 
 type Appearance = 'light' | 'system';
 
-export function updateTheme(value: Appearance) {
+export function updateTheme() {
     if (typeof window === 'undefined') {
         return;
     }
@@ -20,13 +20,7 @@ const setCookie = (name: string, value: string, days = 365) => {
     document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
 };
 
-const getStoredAppearance = () => {
-    if (typeof window === 'undefined') {
-        return null;
-    }
 
-    return localStorage.getItem('appearance') as Appearance | null;
-};
 
 export function initializeTheme() {
     if (typeof window === 'undefined') {
@@ -58,7 +52,7 @@ export function useAppearance() {
         setCookie('appearance', value);
 
         // Always use light theme
-        updateTheme(value);
+        updateTheme();
     }
 
     return {

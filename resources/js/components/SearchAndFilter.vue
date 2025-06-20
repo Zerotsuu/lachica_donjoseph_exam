@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SearchIcon, SortAscIcon, SortDescIcon } from 'lucide-vue-next';
@@ -10,7 +10,7 @@ interface Props {
   sortOptions?: Array<{ value: string; label: string }>;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   searchPlaceholder: 'Search...',
   showSort: true,
   sortOptions: () => [
@@ -33,9 +33,7 @@ const handleSort = (order: string) => {
   emit('sort', order);
 };
 
-const currentSortOption = computed(() => {
-  return props.sortOptions.find(option => option.value === sortOrder.value);
-});
+
 </script>
 
 <template>

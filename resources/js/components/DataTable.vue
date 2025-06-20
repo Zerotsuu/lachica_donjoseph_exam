@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { PencilIcon, TrashIcon } from 'lucide-vue-next';
 import LoadingState from './LoadingState.vue';
 import EmptyState from './EmptyState.vue';
 

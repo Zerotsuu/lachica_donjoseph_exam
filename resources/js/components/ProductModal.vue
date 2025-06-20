@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface Product {
   id: number;
@@ -50,9 +50,7 @@ const handleAddToCart = () => {
   }
 };
 
-const handleQuantityChange = (value: string) => {
-  selectedQuantity.value = parseInt(value);
-};
+
 </script>
 
 <template>

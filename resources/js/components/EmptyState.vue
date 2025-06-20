@@ -10,7 +10,7 @@ interface Props {
   showAction?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   description: 'Get started by adding your first item.',
   actionText: 'Add Item',
   showAction: true
