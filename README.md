@@ -7,8 +7,20 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
 ![Inertia.js](https://img.shields.io/badge/Inertia.js-SPA-purple?style=flat-square)
 
-## ✨ Features
 
+### **[TODO] / MISSING FEATURES**
+- Feature tests for API endpoints
+- Component testing for Vue components
+- Integration tests for user flows
+- Email user verification
+- Forget password verification
+- bug** after logging in, user is unable to add items to cart. needs manual refresh of page. optimize code for this.
+- remove inline scripts
+- all of backend / frontend testing
+- Product stock validation
+- API's for frontend listings (except cart.)
+
+## ✨ Features
 ### 🛒 **E-Commerce Core**
 - ✅ **Product Catalog** - Browse and search products with pagination
 - ✅ **Shopping Cart** - Add, update, remove items with real-time updates
@@ -17,25 +29,15 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 - ✅ **Stock Management** - Real-time inventory tracking
 
 ### 👤 **User Management**
-- ✅ **Authentication** - Register, login, email verification
+- ✅ **Authentication** - Register, login
 - ✅ **Authorization** - Role-based access control (Admin/User)
 - ✅ **Profile Management** - Update profile and password
-- ✅ **Password Security** - Secure password reset functionality
-- ✅ **Account Lockout** - Protection against brute force attacks
+- ✅ **Account Lockout**
 
 ### 🎛️ **Admin Dashboard**
 - ✅ **Product CRUD** - Complete product management
 - ✅ **Order Management** - View and update order statuses
 - ✅ **User Management** - Admin user control panel
-- ✅ **Analytics Dashboard** - Overview of products, orders, and users
-- ✅ **Responsive Design** - Mobile-friendly admin interface
-
-### 🎨 **UI/UX Features**
-- ✅ **Modern Design** - Clean, professional interface
-- ✅ **Dark/Light Mode** - Theme switching capability
-- ✅ **Responsive Layout** - Mobile-first design approach
-- ✅ **Real-time Toasts** - User feedback notifications
-- ✅ **Loading States** - Smooth user experience indicators
 
 ## 🛠️ Tech Stack
 
@@ -62,11 +64,11 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 
 ## 🔗 API Endpoints
 ### **Authentication**
-- `POST /register` - User registration
-- `POST /login` - User login
-- `POST /logout` - User logout
-- `POST /forgot-password` - Password reset request
-- `POST /reset-password` - Password reset confirmation
+- `POST /register` - User registration (modified from starter-kit)
+- `POST /login` - User login (modified from starter-kit)
+- `POST /logout` - User logout (modified from starter-kit)
+- `POST /forgot-password` - Password reset request (untested - from starter-kit)
+- `POST /reset-password` - Password reset confirmation (untested - from starter-kit)
 
 ### **Cart Management**
 - `GET /cart` - Get user's cart
@@ -76,7 +78,7 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 - `POST /cart/place-order` - Place order from cart
 
 ### **Admin Routes** (Protected)
-- `GET /admin/dashboard/*` - Admin dashboard views
+- `GET /admin/dashboard/*` - Admin dashboard views (modified from starter-kit)
 - `Resource /admin/products` - Product CRUD operations
 - `Resource /admin/orders` - Order management
 - `Resource /admin/users` - User management
@@ -105,15 +107,7 @@ laravel-vue-setup/
 └── tests/               # PHP tests
 ```
 
-## 🔐 Security Features
 
-- **CSRF Protection** - All forms protected against CSRF attacks
-- **SQL Injection Prevention** - Eloquent ORM with parameter binding
-- **XSS Protection** - Output escaping and content sanitization
-- **Password Hashing** - Bcrypt password encryption
-- **Rate Limiting** - API and login attempt rate limiting
-- **Email Verification** - Account verification system
-- **Role-Based Access** - Admin/User role separation
 
 ## 🐛 Known Issues & Solutions
 
@@ -124,10 +118,6 @@ laravel-vue-setup/
 ### **Route Management**
 - Routes are still exposed. Need to minimize route exposure with ziggy
 
-### **Testing Strategy [TODO]**
-- Feature tests for API endpoints
-- Component testing for Vue components
-- Integration tests for user flows
 
 # Laravel Vue Product Management System
 [X] Landing Store Page
@@ -143,10 +133,3 @@ laravel-vue-setup/
 [X] connect user_id to cart_id
 [X] Place Order Functionality
 [X] establish Cart to Place Order database relationship
-
----
-
-# to do
-[] bug** after logging in, user is unable to add items to cart. needs manual refresh of page. optimize code for this.
-[] remove inline scripts
-[] minimize route exposure with ziggy
