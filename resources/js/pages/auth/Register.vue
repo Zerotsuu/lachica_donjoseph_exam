@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { Mail, Lock, User } from 'lucide-vue-next';
 
 const form = useForm({
     name: '',
@@ -23,61 +18,86 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthBase title="Create an account" description="Enter your details below to create your account">
-        <Head title="Register" />
+    <Head title="Registration Page" />
+    <div class="min-h-screen flex items-center justify-center bg-[#f7f7f7]">
+        <div class="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-10 flex flex-col items-center">
+            <!-- Logo -->
+                <img src="/images/logo.svg" alt="PurpleBug Logo" class="h-16 w-auto mb-10" />
 
-        <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="name">Name</Label>
-                    <Input id="name" type="text" required autofocus :tabindex="1" autocomplete="name" v-model="form.name" placeholder="Full name" />
-                    <InputError :message="form.errors.name" />
+            
+            <form @submit.prevent="submit" class="w-full flex flex-col gap-6 text-black">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium mb-1">Full Name</label>
+                        <div class="flex items-center border border-gray-400 rounded-md px-3 py-2 bg-white">
+                            <User class="w-5 h-5 text-gray-700 mr-2" />
+                            <input
+                                id="name"
+                                type="text"
+                                required
+                                autofocus
+                                autocomplete="name"
+                                v-model="form.name"
+                                class="flex-1 bg-transparent outline-none text-base"
+                            />
+                        </div>
+                        <InputError :message="form.errors.name" />
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium mb-1">Email</label>
+                        <div class="flex items-center border border-gray-400 rounded-md px-3 py-2 bg-white">
+                            <Mail class="w-5 h-5 text-gray-700 mr-2" />
+                            <input
+                                id="email"
+                                type="email"
+                                required
+                                autocomplete="email"
+                                v-model="form.email"
+                                class="flex-1 bg-transparent outline-none text-base"
+                            />
+                        </div>
+                        <InputError :message="form.errors.email" />
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium mb-1">Password</label>
+                        <div class="flex items-center border border-gray-400 rounded-md px-3 py-2 bg-white">
+                            <Lock class="w-5 h-5 text-gray-700 mr-2" />
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                autocomplete="new-password"
+                                v-model="form.password"
+                                class="flex-1 bg-transparent outline-none text-base"
+                            />
+                        </div>
+                        <InputError :message="form.errors.password" />
+                    </div>
+                    <div>
+                        <label for="password_confirmation" class="block text-sm font-medium mb-1">Confirm Password</label>
+                        <div class="flex items-center border border-gray-400 rounded-md px-3 py-2 bg-white">
+                            <Lock class="w-5 h-5 text-gray-700 mr-2" />
+                            <input
+                                id="password_confirmation"
+                                type="password"
+                                required
+                                autocomplete="new-password"
+                                v-model="form.password_confirmation"
+                                class="flex-1 bg-transparent outline-none text-base"
+                            />
+                        </div>
+                        <InputError :message="form.errors.password_confirmation" />
+                    </div>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" required :tabindex="2" autocomplete="email" v-model="form.email" placeholder="email@example.com" />
-                    <InputError :message="form.errors.email" />
+                <!-- Centered Register Button -->
+                <div class="flex justify-center w-full">
+                    <button type="submit" :disabled="form.processing" class="w-full max-w-3xs mt-4 bg-[#8B3F93] text-white font-semibold rounded-lg py-3 shadow-md hover:bg-[#7a3680] transition disabled:opacity-60">
+                        REGISTER
+                    </button>
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        :tabindex="3"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        :tabindex="4"
-                        autocomplete="new-password"
-                        v-model="form.password_confirmation"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="form.errors.password_confirmation" />
-                </div>
-
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
-                </Button>
-            </div>
-
-            <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="6">Log in</TextLink>
-            </div>
-        </form>
-    </AuthBase>
+            </form>
+        </div>
+    </div>
 </template>

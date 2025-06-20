@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -40,8 +41,15 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+        $this->ensureAccountIsNotLocked();
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+            // Handle failed login attempt
+            $user = User::where('email', $this->email)->first();
+            if ($user) {
+                $user->incrementFailedAttempts();
+            }
+
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -49,7 +57,31 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Successful login - reset failed attempts and update last activity
+        $user = Auth::user();
+        $user->resetAccountLock();
+        $user->updateLastActivity();
+
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Ensure the account is not locked due to failed attempts.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function ensureAccountIsNotLocked(): void
+    {
+        $user = User::where('email', $this->email)->first();
+        
+        if ($user && $user->isAccountLocked()) {
+            $remainingMinutes = now()->diffInMinutes($user->account_locked_until, false);
+            $remainingMinutes = abs($remainingMinutes);
+            
+            throw ValidationException::withMessages([
+                'email' => "Account is locked due to too many failed login attempts. Please try again in {$remainingMinutes} minutes.",
+            ]);
+        }
     }
 
     /**

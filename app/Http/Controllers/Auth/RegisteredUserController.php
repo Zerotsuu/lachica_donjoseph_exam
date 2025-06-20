@@ -46,6 +46,12 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return to_route('dashboard');
+        // Redirect based on user role
+        if ($user->role === 'admin') {
+            return to_route('dashboard');
+        } else {
+            // Redirect regular users to the shop (landing page)
+            return to_route('home');
+        }
     }
 }

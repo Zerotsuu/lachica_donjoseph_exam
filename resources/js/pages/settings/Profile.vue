@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import { useToast } from '@/composables/useToast';
 import { type BreadcrumbItem, type User } from '@/types';
 
 interface Props {
@@ -33,9 +34,17 @@ const form = useForm({
     email: user.email,
 });
 
+const { showSuccess, showError } = useToast();
+
 const submit = () => {
     form.patch(route('profile.update'), {
         preserveScroll: true,
+        onSuccess: () => {
+            showSuccess('Profile Updated', 'Your profile information has been successfully updated.');
+        },
+        onError: () => {
+            showError('Update Failed', 'There was an error updating your profile. Please try again.');
+        }
     });
 };
 </script>
@@ -99,6 +108,7 @@ const submit = () => {
                             <p v-show="form.recentlySuccessful" class="text-sm text-neutral-600">Saved.</p>
                         </Transition>
                     </div>
+
                 </form>
             </div>
 
