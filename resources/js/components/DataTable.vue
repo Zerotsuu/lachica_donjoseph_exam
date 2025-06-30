@@ -2,6 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import LoadingState from './LoadingState.vue';
 import EmptyState from './EmptyState.vue';
+import { useGridClass } from '@/composables/useGridClass'
 
 interface Column {
   key: string;
@@ -69,7 +70,11 @@ const formatCellValue = (value: any, row: any, column: Column) => {
   }
   return value;
 };
+
+const gridClass= useGridClass(props.columns, props.actions);
 </script>
+
+
 
 <template>
   <div class="grid space-y-4">
@@ -79,9 +84,10 @@ const formatCellValue = (value: any, row: any, column: Column) => {
     <!-- Table -->
     <div v-else-if="data.length > 0">
       <!-- Table Header -->
-      <Table class="bg-[#8B3F93] rounded-lg shadow">
-        <TableHeader>
-          <TableRow :class="`grid grid-cols-${columns.length + (actions.length > 0 ? 1 : 0)} gap-4`">
+      <Table class="inline-block bg-[#8B3F93] rounded-lg shadow">
+        <TableHeader class="flex-grid ">
+          <TableRow :class="`grid ${gridClass} gap-4 `">
+           
             <TableHead 
               v-for="column in columns" 
               :key="column.key"
