@@ -7,6 +7,10 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
 ![Inertia.js](https://img.shields.io/badge/Inertia.js-SPA-purple?style=flat-square)
 
+Routing Flow :
+![image](https://github.com/user-attachments/assets/94edea7c-fd77-4b0f-91fa-d270c52117f0)
+
+
 
 ### **[TODO] / MISSING FEATURES**
 - Feature tests for API endpoints
@@ -19,48 +23,6 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 - all of backend / frontend testing
 - Product stock validation
 - API's for frontend listings (except cart.)
-
-## ✨ Features
-### 🛒 **E-Commerce Core**
-- ✅ **Product Catalog** - Browse and search products with pagination
-- ✅ **Shopping Cart** - Add, update, remove items with real-time updates
-- ✅ **Order Management** - Place orders and track order history
-- ✅ **Image Upload** - Product image management with file validation
-- ✅ **Stock Management** - Real-time inventory tracking
-
-### 👤 **User Management**
-- ✅ **Authentication** - Register, login
-- ✅ **Authorization** - Role-based access control (Admin/User)
-- ✅ **Profile Management** - Update profile and password
-- ✅ **Account Lockout**
-
-### 🎛️ **Admin Dashboard**
-- ✅ **Product CRUD** - Complete product management
-- ✅ **Order Management** - View and update order statuses
-- ✅ **User Management** - Admin user control panel
-
-## 🛠️ Tech Stack
-
-### **Backend**
-- **Laravel 11** - PHP framework with latest features
-- **MySQL** - Relational database management
-- **Laravel Sanctum** - API authentication
-- **Spatie Permissions** - Role and permission management
-
-### **Frontend**
-- **Vue 3** - Progressive JavaScript framework
-- **TypeScript** - Type-safe JavaScript development
-- **Inertia.js** - Modern monolith SPA approach
-- **Tailwind CSS** - Utility-first CSS framework
-- **Headless UI** - Unstyled accessible UI components
-- **Lucide Icons** - Beautiful & consistent icon set
-
-### **Development Tools**
-- **Vite** - Fast build tool and dev server
-- **ESLint** - Code linting and formatting
-- **Ziggy** - Laravel route generation for JavaScript
-- **Pest** - Testing framework for PHP
-
 
 ## 🔗 API Endpoints
 ### **Authentication**
@@ -88,48 +50,24 @@ A modern full-stack e-commerce application built with Laravel 11, Vue 3, TypeScr
 ```
 laravel-vue-setup/
 ├── app/                      # Laravel application logic
-│   ├── Http/Controllers/     # Request controllers
-│   │   ├── Http/Controllers/     # Request controllers
-│   │   ├── Models/              # Eloquent models
-│   │   └── Middleware/          # Custom middleware
-│   ├── database/
-│   │   ├── migrations/          # Database migrations
-│   │   └── seeders/            # Database seeders
-│   ├── resources/
-│   │   ├── js/                 # Vue.js frontend application
-│   │   │   ├── components/     # Reusable Vue components
-│   │   │   ├── pages/         # Inertia page components
-│   │   │   ├── layouts/       # Layout components
-│   │   │   └── composables/   # Vue composables
-│   │   └── css/               # Stylesheets
-│   ├── routes/                # Laravel route definitions
-│   └── public/               # Public assets
-└── tests/               # PHP tests
+│   ├── Http/                 # HTTP layer
+│   │   ├── Controllers/      # Request controllers
+│   │   ├── Middleware/       # Custom middleware
+│   │   ├── Resources/        # API resources
+│   │   └── Traits/           # Reusable traits
+│   ├── Models/               # Eloquent models
+│   └── Services/             # Business logic services
+├── database/
+│   ├── migrations/           # Database migrations
+│   └── seeders/             # Database seeders
+├── resources/
+│   ├── js/                  # Vue.js frontend application
+│   │   ├── components/      # Reusable Vue components
+│   │   ├── pages/          # Inertia page components
+│   │   ├── layouts/        # Layout components
+│   │   └── composables/    # Vue composables
+│   └── css/                # Stylesheets
+├── routes/                 # Laravel route definitions
+├── public/                 # Public assets
+└── tests/                  # PHP tests
 ```
-
-
-
-## 🐛 Known Issues & Solutions
-
-### **Cart Functionality After Login**
-- ✅ **FIXED** - Attempted to implement CSRF token handling with Inertia.js router
-- Cart now works without page refresh after login but still clunky
-
-### **Route Management**
-- Routes are still exposed. Need to minimize route exposure with ziggy
-
-
-# Laravel Vue Product Management System
-[X] Landing Store Page
-[X] Login / Register Page
-[X] Admin Dashboard (Product Management Page)
-[X] Admin Sidebar
-[X] Admin Dashboard Modals
-[X] basic CRUD functionality
-[X] Login / Register Functionality
-[X] Product rendering in Landing store page
-[X] Upload images functionality
-[X] Cart Functionality
-[X] connect user_id to cart_id
-[X] Place Order Functionality
-[X] establish Cart to Place Order database relationship
