@@ -32,7 +32,9 @@ Route::prefix('api/auth')->group(function () {
     // Protected API auth routes
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+        // Route to get the current user
         Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
+        // Route to revoke all tokens for the current user (still testing)
         Route::post('revoke-all', [AuthController::class, 'revokeAll'])->name('api.auth.revoke-all');
     });
 });

@@ -34,8 +34,12 @@ class SanctumAuthenticatedSessionController extends Controller
 
         $user = Auth::guard('web')->user();
 
-        // Create Sanctum token for the user
-        $token = $user->createToken('web-token', ['web:access'])->plainTextToken;
+        // Create Sanctum token for the user with expiration
+        $token = $user->createToken(
+            'web-token', 
+            ['web:access'], 
+            now()->addDays(30) // 30 day expiration for web tokens
+        )->plainTextToken;
 
         // Store token in session for frontend use
         session(['sanctum_token' => $token]);

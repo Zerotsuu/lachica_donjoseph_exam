@@ -6,10 +6,22 @@ interface CrudOptions {
   resourceName: string;
   baseUrl: string;
   displayNameField?: string;
+  allowCreate?: boolean;
+  allowEdit?: boolean;
+  allowDelete?: boolean;
+  allowView?: boolean;
 }
 
 export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
   const { showSuccess, showError } = useToast();
+  
+  // Default permissions
+  const permissions = {
+    allowCreate: options.allowCreate ?? true,
+    allowEdit: options.allowEdit ?? true,
+    allowDelete: options.allowDelete ?? true,
+    allowView: options.allowView ?? true,
+  };
   
   // State
   const isLoading = ref(false);
@@ -20,18 +32,21 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
 
   // Modal handlers
   const openAddModal = () => {
+    if (!permissions.allowCreate) return;
     modalMode.value = 'add';
     selectedItem.value = null;
     isModalOpen.value = true;
   };
 
   const openEditModal = (item: T) => {
+    if (!permissions.allowEdit) return;
     modalMode.value = 'edit';
     selectedItem.value = { ...item };
     isModalOpen.value = true;
   };
 
   const openViewModal = (item: T) => {
+    if (!permissions.allowView) return;
     modalMode.value = 'view';
     selectedItem.value = { ...item };
     isModalOpen.value = true;
@@ -42,20 +57,48 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
     selectedItem.value = null;
   };
 
+  // Helper functions (moved up for reuse)
+  const getDisplayName = (item: Partial<T>): string => {
+    const nameField = options.displayNameField || 'name';
+    return (item[nameField] as string) || options.resourceName;
+  };
+
+  const getErrorMessage = (errors: Record<string, any>): string => {
+    return Object.values(errors).flat().join(' ') || `Failed to process ${options.resourceName.toLowerCase()}.`;
+  };
+
+  const prepareFormData = (data: Partial<T>, isUpdate = false): FormData => {
+    const formData = data instanceof FormData ? data : new FormData();
+    
+    if (!(data instanceof FormData)) {
+      Object.keys(data).forEach(key => {
+        const value = data[key];
+        if (value !== undefined && value !== null) {
+          // Check if value is a File by checking its constructor name
+          if (typeof value === 'object' && value.constructor?.name === 'File') {
+            formData.append(key, value as File);
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+      
+      if (isUpdate) {
+        formData.append('_method', 'PUT');
+      }
+    }
+    
+    return formData;
+  };
+
   // CRUD Operations
   const create = async (data: Partial<T>) => {
+    if (!permissions.allowCreate) return;
+    
     isLoading.value = true;
     
     try {
-      const formData = data instanceof FormData ? data : new FormData();
-      
-      if (!(data instanceof FormData)) {
-        Object.keys(data).forEach(key => {
-          if (data[key] !== undefined && data[key] !== null) {
-            formData.append(key, data[key] as string);
-          }
-        });
-      }
+      const formData = prepareFormData(data);
 
       router.post(options.baseUrl, formData, {
         onSuccess: () => {
@@ -83,21 +126,12 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
   };
 
   const update = async (id: number, data: Partial<T>) => {
-    if (!selectedItem.value) return;
+    if (!permissions.allowEdit || !selectedItem.value) return;
     
     isLoading.value = true;
     
     try {
-      const formData = data instanceof FormData ? data : new FormData();
-      
-      if (!(data instanceof FormData)) {
-        Object.keys(data).forEach(key => {
-          if (data[key] !== undefined && data[key] !== null) {
-            formData.append(key, data[key] as string);
-          }
-        });
-        formData.append('_method', 'PUT');
-      }
+      const formData = prepareFormData(data, true);
 
       router.post(`${options.baseUrl}/${id}`, formData, {
         onSuccess: () => {
@@ -125,6 +159,8 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
   };
 
   const deleteItem = async (item: T) => {
+    if (!permissions.allowDelete) return;
+    
     const displayName = getDisplayName(item);
     
     if (!confirm(`Are you sure you want to delete "${displayName}"? This action cannot be undone.`)) {
@@ -159,21 +195,11 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
 
   // Save handler (create or update)
   const save = async (data: Partial<T>) => {
-    if (modalMode.value === 'add') {
+    if (modalMode.value === 'add' && permissions.allowCreate) {
       await create(data);
-    } else if (modalMode.value === 'edit' && selectedItem.value) {
+    } else if (modalMode.value === 'edit' && selectedItem.value && permissions.allowEdit) {
       await update(selectedItem.value.id, data);
     }
-  };
-
-  // Helper functions
-  const getDisplayName = (item: Partial<T>): string => {
-    const nameField = options.displayNameField || 'name';
-    return (item[nameField] as string) || options.resourceName;
-  };
-
-  const getErrorMessage = (errors: Record<string, any>): string => {
-    return Object.values(errors).flat().join(' ') || `Failed to process ${options.resourceName.toLowerCase()}.`;
   };
 
   const isItemDeleting = (item: T): boolean => {
@@ -188,6 +214,9 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
     modalMode: computed(() => modalMode.value),
     selectedItem: computed(() => selectedItem.value),
     
+    // Permissions
+    permissions: computed(() => permissions),
+    
     // Modal actions
     openAddModal,
     openEditModal,
@@ -199,6 +228,7 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
     deleteItem,
     
     // Helpers
-    isItemDeleting
+    isItemDeleting,
+    getDisplayName,
   };
 } 
