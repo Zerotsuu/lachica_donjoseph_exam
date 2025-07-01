@@ -38,9 +38,14 @@ return Application::configure(basePath: dirname(__DIR__))
         
         // Register custom middleware aliases
         $middleware->alias([
+            'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
+            'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
             'sanctum.admin' => \App\Http\Middleware\SanctumAdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->withCommands([])
+    ->withProviders([])
+    ->create();

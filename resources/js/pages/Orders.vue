@@ -7,7 +7,7 @@ import DataTable from '@/components/DataTable.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
 import OrderFormDialog from '@/components/orders/OrderFormDialog.vue';
-import { useCrudView } from '@/composables/useCrudView';
+import { useCrud } from '@/composables/useCrud';
 import { useToast } from '@/composables/useToast';
 
 // Define the Order interface
@@ -31,7 +31,7 @@ const orders = computed(() => page.props.orders as Order[] || []);
 const { showSuccess, showError } = useToast();
 
 // Use the view-only CRUD composable (no add functionality)
-const crud = useCrudView<Order>({
+const crud = useCrud<Order>({
   resourceName: 'Order',
   baseUrl: '/admin/orders',
   displayNameField: 'customer_name',

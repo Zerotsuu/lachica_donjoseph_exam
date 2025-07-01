@@ -3,60 +3,37 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Traits\ApiResponseTrait;
+use App\Http\Requests\UserRequest;
+use App\Http\Resources\UserResource;
+use App\Services\UserService;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class UserApiController extends Controller
 {
+    use ApiResponseTrait;
+
+    public function __construct(
+        protected UserService $userService
+    ) {}
+
     /**
      * Display a listing of users.
      */
     public function index(): JsonResponse
     {
-        $users = User::latest()->get()->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'email_verified_at' => $user->email_verified_at?->format('Y-m-d H:i:s'),
-                'created_at' => $user->created_at->format('Y-m-d H:i:s'),
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $users
-        ]);
+        $users = $this->userService->getAllUsers();
+        return $this->successResponse($users);
     }
 
     /**
      * Store a newly created user.
      */
-    public function store(Request $request): JsonResponse
+    public function store(UserRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => ['nullable', Rule::in(['admin', 'user'])],
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'] ?? 'user',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User created successfully!',
-            'data' => $user
-        ], 201);
+        $user = $this->userService->createUser($request->getProcessedData());
+        return $this->successResponse($user, 'User created successfully!', 201);
     }
 
     /**
@@ -64,53 +41,16 @@ class UserApiController extends Controller
      */
     public function show(User $user): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'email_verified_at' => $user->email_verified_at?->format('Y-m-d H:i:s'),
-                'created_at' => $user->created_at->format('Y-m-d H:i:s'),
-            ]
-        ]);
+        return $this->successResponse(new UserResource($user));
     }
 
     /**
      * Update the specified user.
      */
-    public function update(Request $request, User $user): JsonResponse
+    public function update(UserRequest $request, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => ['nullable', Rule::in(['admin', 'user'])],
-        ]);
-
-        $updateData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ];
-
-        // Only update role if provided
-        if (isset($validated['role'])) {
-            $updateData['role'] = $validated['role'];
-        }
-
-        // Only update password if provided
-        if (!empty($validated['password'])) {
-            $updateData['password'] = Hash::make($validated['password']);
-        }
-
-        $user->update($updateData);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User updated successfully!',
-            'data' => $user
-        ]);
+        $updatedUser = $this->userService->updateUser($user, $request->getProcessedData());
+        return $this->successResponse($updatedUser, 'User updated successfully!');
     }
 
     /**
@@ -118,20 +58,14 @@ class UserApiController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
-        // Prevent deleting the current user
-        if ($user->id === auth('sanctum')->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You cannot delete your own account.'
-            ], 400);
+        $validation = $this->userService->canDeleteUser($user, auth('sanctum')->user());
+        
+        if (!$validation['can_delete']) {
+            return $this->errorResponse($validation['message'], 400);
         }
 
-        $user->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User deleted successfully!'
-        ]);
+        $this->userService->deleteUser($user);
+        return $this->successResponse(null, 'User deleted successfully!');
     }
 
     /**
@@ -139,19 +73,8 @@ class UserApiController extends Controller
      */
     public function toggleVerification(User $user): JsonResponse
     {
-        if ($user->email_verified_at) {
-            $user->update(['email_verified_at' => null]);
-            $message = 'User email verification removed.';
-        } else {
-            $user->update(['email_verified_at' => now()]);
-            $message = 'User email verified successfully.';
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => $message,
-            'data' => $user
-        ]);
+        $result = $this->userService->toggleVerification($user);
+        return $this->successResponse($result['user'], $result['message']);
     }
 
     /**
@@ -159,16 +82,7 @@ class UserApiController extends Controller
      */
     public function resetPassword(User $user): JsonResponse
     {
-        $tempPassword = 'password123';
-        
-        $user->update([
-            'password' => Hash::make($tempPassword)
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => "User password reset to: {$tempPassword}",
-            'data' => $user
-        ]);
+        $result = $this->userService->resetPassword($user);
+        return $this->successResponse($result['user'], $result['message']);
     }
 } 

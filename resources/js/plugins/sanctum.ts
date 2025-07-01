@@ -36,7 +36,7 @@ export function setupSanctum() {
             if (sanctumToken) {
               config.headers.Authorization = `Bearer ${sanctumToken}`
             }
-          } catch (error) {
+          } catch {
             console.warn('Could not parse page data for Sanctum token')
           }
         }
