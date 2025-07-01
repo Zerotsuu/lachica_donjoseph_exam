@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ToastContainer } from '@/components/ui/toast';
-import { useSessionManagement } from '@/composables/useSessionManagement';
-import SessionWarningModal from './SessionWarningModal.vue';
-import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+
+
 
 // This component wraps the main app and provides global toast functionality
 defineProps<{
@@ -11,11 +9,8 @@ defineProps<{
   props: any;
 }>();
 
-const page = usePage();
-const isAuthenticated = computed(() => !!page.props?.auth?.user);
+// This component wraps the main app and provides global toast functionality
 
-// Always initialize session management but only activate for authenticated users
-const { showSessionWarning, dismissWarning, handleSessionExpired } = useSessionManagement();
 </script>
 
 <template>
@@ -26,13 +21,6 @@ const { showSessionWarning, dismissWarning, handleSessionExpired } = useSessionM
     <!-- Global toast container -->
     <ToastContainer />
     
-    <!-- Session warning modal for authenticated users only -->
-    <SessionWarningModal 
-      v-if="isAuthenticated"
-      :show-warning="showSessionWarning"
-      @extend-session="dismissWarning"
-      @logout="handleSessionExpired"
-      @dismiss="dismissWarning"
-    />
+
   </div>
 </template> 

@@ -4,10 +4,10 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\UserController;
-use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\SanctumAdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', AdminMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', SanctumAdminMiddleware::class])->prefix('admin')->group(function () {
     // Dashboard Routes
     Route::get('/dashboard/products', [AdminDashboardController::class, 'products'])->name('admin.dashboard.products');
     Route::get('/dashboard/orders', [AdminDashboardController::class, 'orders'])->name('admin.dashboard.orders');
@@ -52,6 +52,6 @@ Route::middleware(['auth', 'verified', AdminMiddleware::class])->prefix('admin')
 });
 
 // Main dashboard route (redirect to products)
-Route::middleware(['auth', 'verified', AdminMiddleware::class])->group(function () {
+Route::middleware(['auth:sanctum', SanctumAdminMiddleware::class])->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'products'])->name('dashboard');
 }); 

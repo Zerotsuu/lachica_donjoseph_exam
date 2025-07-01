@@ -43,7 +43,7 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
         $this->ensureAccountIsNotLocked();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! Auth::guard('web')->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             // Handle failed login attempt
             $user = User::where('email', $this->email)->first();
             if ($user) {
@@ -58,7 +58,7 @@ class LoginRequest extends FormRequest
         }
 
         // Successful login - reset failed attempts and update last activity
-        $user = Auth::user();
+        $user = Auth::guard('web')->user();
         $user->resetAccountLock();
         $user->updateLastActivity();
 

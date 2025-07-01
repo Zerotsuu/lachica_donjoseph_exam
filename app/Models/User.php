@@ -34,6 +34,15 @@ class User extends Authenticatable
     ];
 
     /**
+     * The attributes that should have default values.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => self::ROLE_USER,
+    ];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var array<int, string>

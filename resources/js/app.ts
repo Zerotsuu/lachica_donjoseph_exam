@@ -3,6 +3,7 @@ import '../css/app.css';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
+import sanctumPlugin from './plugins/sanctum';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
 import { initializeTheme } from './composables/useAppearance';
@@ -22,6 +23,7 @@ createInertiaApp({
         })
             .use(plugin)
             .use(ZiggyVue)
+            .use(sanctumPlugin)
             .mount(el);
     },
     progress: {
