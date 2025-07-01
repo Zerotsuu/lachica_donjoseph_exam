@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class AuthenticatedSessionController extends Controller
+class SanctumAuthenticatedSessionController extends Controller
 {
     /**
      * Show the login page.
@@ -26,22 +26,29 @@ class AuthenticatedSessionController extends Controller
 
     /**
      * Handle an incoming authentication request.
+     * This now creates a Sanctum token and redirects based on user role.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        $user = Auth::guard('web')->user();
 
-        // Get the authenticated user
-        $user = Auth::user();
+        // Create Sanctum token for the user
+        $token = $user->createToken('web-token', ['web:access'])->plainTextToken;
+
+        // Store token in session for frontend use
+        session(['sanctum_token' => $token]);
+
+        // Reset failed attempts on successful login
+        $user->resetAccountLock();
+        $user->updateLastActivity();
 
         // Redirect based on user role
         if ($user->isAdmin()) {
             return redirect()->intended(route('dashboard', absolute: false));
         } else {
             // Redirect Guest/User role to the shop (landing page)
-            // Ensure they cannot access admin dashboard
             return redirect()->intended(route('home', absolute: false));
         }
     }
@@ -51,11 +58,24 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // Get user from web guard (since they logged in via web)
+        $user = Auth::guard('web')->user();
+        
+        if ($user) {
+            // Revoke all Sanctum tokens for the user
+            $user->tokens()->delete();
+        }
+
+        // Logout from web guard (clears session)
         Auth::guard('web')->logout();
 
+        // Clear session token
+        session()->forget('sanctum_token');
+        
+        // Clear and regenerate session
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect('/');
     }
-}
+} 
