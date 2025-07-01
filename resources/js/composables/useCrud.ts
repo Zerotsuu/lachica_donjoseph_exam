@@ -1,11 +1,12 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useToast } from './useToast';
+import { useErrorHandler } from './useErrorHandler';
 
 interface CrudOptions {
   resourceName: string;
   baseUrl: string;
-  displayNameField?: string;
+  displayNameField: string;
   allowCreate?: boolean;
   allowEdit?: boolean;
   allowDelete?: boolean;
@@ -14,41 +15,42 @@ interface CrudOptions {
 
 export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
   const { showSuccess, showError } = useToast();
-  
-  // Default permissions
-  const permissions = {
+  const { handleError, handleValidationError, createRetryHandler } = useErrorHandler();
+
+  // State management
+  const isLoading = ref(false);
+  const isModalOpen = ref(false);
+  const modalMode = ref<'add' | 'edit' | 'view'>('add');
+  const selectedItem = ref<T | null>(null);
+  const isDeleting = ref<number | null>(null);
+
+  // Permissions
+  const permissions = computed(() => ({
     allowCreate: options.allowCreate ?? true,
     allowEdit: options.allowEdit ?? true,
     allowDelete: options.allowDelete ?? true,
     allowView: options.allowView ?? true,
-  };
-  
-  // State
-  const isLoading = ref(false);
-  const isDeleting = ref<number | null>(null);
-  const isModalOpen = ref(false);
-  const modalMode = ref<'add' | 'edit' | 'view'>('add');
-  const selectedItem = ref<T | null>(null);
+  }));
 
-  // Modal handlers
+  // Modal management
   const openAddModal = () => {
-    if (!permissions.allowCreate) return;
-    modalMode.value = 'add';
+    if (!permissions.value.allowCreate) return;
     selectedItem.value = null;
+    modalMode.value = 'add';
     isModalOpen.value = true;
   };
 
   const openEditModal = (item: T) => {
-    if (!permissions.allowEdit) return;
+    if (!permissions.value.allowEdit) return;
+    selectedItem.value = item;
     modalMode.value = 'edit';
-    selectedItem.value = { ...item };
     isModalOpen.value = true;
   };
 
   const openViewModal = (item: T) => {
-    if (!permissions.allowView) return;
+    if (!permissions.value.allowView) return;
+    selectedItem.value = item;
     modalMode.value = 'view';
-    selectedItem.value = { ...item };
     isModalOpen.value = true;
   };
 
@@ -57,14 +59,19 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
     selectedItem.value = null;
   };
 
-  // Helper functions (moved up for reuse)
-  const getDisplayName = (item: Partial<T>): string => {
-    const nameField = options.displayNameField || 'name';
-    return (item[nameField] as string) || options.resourceName;
+  // Utility functions
+  const getDisplayName = (item: any): string => {
+    return item?.[options.displayNameField] || 'Item';
   };
 
-  const getErrorMessage = (errors: Record<string, any>): string => {
-    return Object.values(errors).flat().join(' ') || `Failed to process ${options.resourceName.toLowerCase()}.`;
+  // Enhanced error handling with semantic processing
+  const getErrorMessage = (errors: any): string => {
+    if (typeof errors === 'string') return errors;
+    if (typeof errors === 'object' && errors !== null) {
+      const firstError = Object.values(errors).flat()[0];
+      return typeof firstError === 'string' ? firstError : 'An error occurred';
+    }
+    return 'An unexpected error occurred';
   };
 
   const prepareFormData = (data: Partial<T>, isUpdate = false): FormData => {
@@ -91,9 +98,9 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
     return formData;
   };
 
-  // CRUD Operations
+  // CRUD Operations with enhanced error handling
   const create = async (data: Partial<T>) => {
-    if (!permissions.allowCreate) return;
+    if (!permissions.value.allowCreate) return;
     
     isLoading.value = true;
     
@@ -111,8 +118,14 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
         },
         onError: (errors) => {
           console.error(`Add ${options.resourceName.toLowerCase()} error:`, errors);
-          const errorMessage = getErrorMessage(errors);
-          showError('Add Failed', errorMessage);
+          
+          // Use semantic error handling
+          const processedError = handleValidationError(errors);
+          if (Object.keys(processedError).length === 0) {
+            // No validation errors, show generic error
+            const errorMessage = getErrorMessage(errors);
+            showError('Add Failed', errorMessage);
+          }
         },
         onFinish: () => {
           isLoading.value = false;
@@ -120,13 +133,13 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
       });
     } catch (error) {
       console.error(`${options.resourceName} creation failed:`, error);
-      showError('Operation Failed', 'An unexpected error occurred. Please try again.');
+      handleError(error, 'CrudCreate');
       isLoading.value = false;
     }
   };
 
   const update = async (id: number, data: Partial<T>) => {
-    if (!permissions.allowEdit || !selectedItem.value) return;
+    if (!permissions.value.allowEdit) return;
     
     isLoading.value = true;
     
@@ -144,8 +157,14 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
         },
         onError: (errors) => {
           console.error(`Update ${options.resourceName.toLowerCase()} error:`, errors);
-          const errorMessage = getErrorMessage(errors);
-          showError('Update Failed', errorMessage);
+          
+          // Use semantic error handling
+          const processedError = handleValidationError(errors);
+          if (Object.keys(processedError).length === 0) {
+            // No validation errors, show generic error
+            const errorMessage = getErrorMessage(errors);
+            showError('Update Failed', errorMessage);
+          }
         },
         onFinish: () => {
           isLoading.value = false;
@@ -153,24 +172,27 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
       });
     } catch (error) {
       console.error(`${options.resourceName} update failed:`, error);
-      showError('Operation Failed', 'An unexpected error occurred. Please try again.');
+      handleError(error, 'CrudUpdate');
       isLoading.value = false;
     }
   };
 
-  const deleteItem = async (item: T) => {
-    if (!permissions.allowDelete) return;
-    
+  // Enhanced delete with retry mechanism for network failures
+  const deleteItem = createRetryHandler(async (item: T) => {
+    if (!permissions.value.allowDelete) return;
+
     const displayName = getDisplayName(item);
+    const confirmMessage = `Are you sure you want to delete "${displayName}"? This action cannot be undone.`;
     
-    if (!confirm(`Are you sure you want to delete "${displayName}"? This action cannot be undone.`)) {
+    if (!confirm(confirmMessage)) {
       return;
     }
 
-    isDeleting.value = item.id;
-    
+    const itemId = item.id;
+    isDeleting.value = itemId;
+
     try {
-      router.delete(`${options.baseUrl}/${item.id}`, {
+      router.delete(`${options.baseUrl}/${itemId}`, {
         onSuccess: () => {
           showSuccess(
             `${options.resourceName} Deleted`, 
@@ -188,46 +210,49 @@ export function useCrud<T extends Record<string, any>>(options: CrudOptions) {
       });
     } catch (error) {
       console.error(`${options.resourceName} deletion failed:`, error);
-      showError('Delete Failed', 'An unexpected error occurred while deleting the item.');
+      handleError(error, 'CrudDelete');
       isDeleting.value = null;
     }
-  };
+  });
 
-  // Save handler (create or update)
-  const save = async (data: Partial<T>) => {
-    if (modalMode.value === 'add' && permissions.allowCreate) {
-      await create(data);
-    } else if (modalMode.value === 'edit' && selectedItem.value && permissions.allowEdit) {
-      await update(selectedItem.value.id, data);
-    }
-  };
-
+  // Check if specific item is being deleted
   const isItemDeleting = (item: T): boolean => {
     return isDeleting.value === item.id;
   };
 
+  // Main save function that routes to create or update
+  const save = async (data: Partial<T>) => {
+    if (modalMode.value === 'add') {
+      await create(data);
+    } else if (modalMode.value === 'edit' && selectedItem.value) {
+      await update(selectedItem.value.id, data);
+    }
+  };
+
   return {
     // State
-    isLoading: computed(() => isLoading.value),
-    isDeleting: computed(() => isDeleting.value),
-    isModalOpen: computed(() => isModalOpen.value),
-    modalMode: computed(() => modalMode.value),
-    selectedItem: computed(() => selectedItem.value),
-    
-    // Permissions
-    permissions: computed(() => permissions),
-    
-    // Modal actions
+    isLoading,
+    isModalOpen,
+    modalMode,
+    selectedItem,
+    isDeleting,
+
+    // Computed
+    permissions,
+
+    // Modal methods
     openAddModal,
     openEditModal,
     openViewModal,
     closeModal,
-    
-    // CRUD actions
-    save,
+
+    // CRUD methods with enhanced error handling
+    create,
+    update,
     deleteItem,
-    
-    // Helpers
+    save,
+
+    // Utility methods
     isItemDeleting,
     getDisplayName,
   };

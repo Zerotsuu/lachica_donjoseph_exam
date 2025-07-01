@@ -4,11 +4,18 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { Mail, Lock } from 'lucide-vue-next';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/composables/useAuth';
+import { useErrorHandler } from '@/composables/useErrorHandler';
+import { onMounted } from 'vue';
 
 defineProps<{
     status?: string;
     canResetPassword: boolean;
 }>();
+
+// Authentication and error handling
+const { initializeAuth } = useAuth();
+const { handleError, handleValidationError } = useErrorHandler();
 
 const form = useForm({
     email: '',
@@ -16,11 +23,45 @@ const form = useForm({
     remember: false,
 });
 
-const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
-    });
+const submit = async () => {
+    try {
+        // Initialize CSRF protection before login as per Laravel Sanctum docs
+        await initializeAuth();
+        
+        // Submit the form using Inertia
+        form.post(route('login'), {
+            onFinish: () => form.reset('password'),
+            onError: (errors) => {
+                console.error('Login errors:', errors);
+                
+                // Use semantic error handling for better user feedback
+                handleValidationError(errors);
+            }
+        });
+    } catch (error) {
+        console.error('Failed to initialize authentication:', error);
+        handleError(error, 'LoginInit');
+        
+        // Still allow form submission in case of auth initialization failure
+        form.post(route('login'), {
+            onFinish: () => form.reset('password'),
+            onError: (errors) => {
+                handleValidationError(errors);
+            }
+        });
+    }
 };
+
+// Initialize authentication when the login page loads
+onMounted(async () => {
+    try {
+        await initializeAuth();
+        console.log('Authentication initialized for login page');
+    } catch (error) {
+        console.warn('Failed to initialize authentication on page load:', error);
+        handleError(error, 'LoginPageInit');
+    }
+});
 </script>
 
 <template>

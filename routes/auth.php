@@ -24,17 +24,21 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
 
-// API auth routes (for programmatic access)
+// API Authentication Routes
 Route::prefix('api/auth')->group(function () {
-    // API Login - returns token directly
+    // Public API Login - returns token directly
     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
     
     // Protected API auth routes
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
-        // Route to get the current user
         Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
-        // Route to revoke all tokens for the current user (still testing)
+        Route::post('refresh', [AuthController::class, 'refreshToken'])->name('api.auth.refresh');
+        
+        // Device/Token management
+        Route::get('devices', [AuthController::class, 'getDevices'])->name('api.auth.devices');
+        Route::delete('devices/{token_id}', [AuthController::class, 'revokeDevice'])->name('api.auth.revoke-device');
+        Route::post('revoke-others', [AuthController::class, 'revokeOtherDevices'])->name('api.auth.revoke-others');
         Route::post('revoke-all', [AuthController::class, 'revokeAll'])->name('api.auth.revoke-all');
     });
 });

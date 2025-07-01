@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { useToast } from '@/composables/useToast';
-import { type BreadcrumbItem, type User } from '@/types';
+import { useAuth } from '@/composables/useAuth';
+import { useErrorHandler } from '@/composables/useErrorHandler';
+import { type BreadcrumbItem } from '@/types';
 
 interface Props {
     mustVerifyEmail: boolean;
@@ -26,12 +28,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-const page = usePage();
-const user = page.props.auth.user as User;
+// Use authentication composable
+const { user } = useAuth();
+
+// Error handling
+const { handleValidationError } = useErrorHandler();
 
 const form = useForm({
-    name: user.name,
-    email: user.email,
+    name: user.value?.name || '',
+    email: user.value?.email || '',
 });
 
 const { showSuccess, showError } = useToast();
@@ -42,8 +47,15 @@ const submit = () => {
         onSuccess: () => {
             showSuccess('Profile Updated', 'Your profile information has been successfully updated.');
         },
-        onError: () => {
-            showError('Update Failed', 'There was an error updating your profile. Please try again.');
+        onError: (errors) => {
+            console.error('Profile update errors:', errors);
+            
+            // Use semantic error handling
+            const processedErrors = handleValidationError(errors);
+            if (Object.keys(processedErrors).length === 0) {
+                // No validation errors, show generic error
+                showError('Update Failed', 'There was an error updating your profile. Please try again.');
+            }
         }
     });
 };
@@ -78,7 +90,7 @@ const submit = () => {
                         <InputError class="mt-2" :message="form.errors.email" />
                     </div>
 
-                    <div v-if="mustVerifyEmail && !user.email_verified_at">
+                    <div v-if="mustVerifyEmail && !user.value?.email_verified_at">
                         <p class="-mt-4 text-sm text-muted-foreground">
                             Your email address is unverified.
                             <Link

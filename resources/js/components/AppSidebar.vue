@@ -5,11 +5,11 @@ import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem } from '@/compone
 import { MonitorIcon, ShoppingCartIcon, UsersIcon, LogOutIcon } from 'lucide-vue-next';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { useToast } from '@/composables/useToast';
-import type { User } from '@/types';
+import { useAuth } from '@/composables/useAuth';
 
 const page = usePage();
 const currentPath = computed(() => page.url);
-const user = computed(() => page.props.auth.user as User);
+const { user } = useAuth();
 
 // Toast notifications
 const { showSuccess, showError } = useToast();

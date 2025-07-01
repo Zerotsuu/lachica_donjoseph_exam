@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue';
 import { Input } from '@/components/ui/input';
 import Modal from '@/components/ui/modal/Modal.vue';
 import { UserIcon, LockIcon, AlertCircleIcon } from 'lucide-vue-next';
+import { useErrorHandler } from '@/composables/useErrorHandler';
 
 interface User {
   id?: number;
@@ -27,6 +28,16 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['close', 'save']);
 
+// Error handling with semantic processing
+const { 
+  getFieldError, 
+  hasFieldError, 
+  setFieldError, 
+  clearFieldError, 
+  clearErrors,
+  handleValidationError 
+} = useErrorHandler();
+
 interface UserFormData {
   name: string;
   email: string;
@@ -41,8 +52,6 @@ const userData = ref<UserFormData>({
   confirmPassword: ''
 });
 
-const validationErrors = ref<Record<string, string>>({});
-
 // Define resetForm before watchers that use it
 const resetForm = () => {
   userData.value = {
@@ -51,7 +60,7 @@ const resetForm = () => {
     password: '',
     confirmPassword: ''
   };
-  validationErrors.value = {};
+  clearErrors();
 };
 
 // Watch for user changes and populate form
@@ -75,60 +84,56 @@ watch(() => props.isOpen, (isOpen) => {
   }
 });
 
-// Watch for backend errors
+// Watch for backend errors and process them semantically
 watch(() => props.errors, (newErrors) => {
-  validationErrors.value = {};
-  if (newErrors) {
-    Object.keys(newErrors).forEach(key => {
-      if (newErrors[key] && newErrors[key].length > 0) {
-        validationErrors.value[key] = newErrors[key][0];
-      }
-    });
+  if (newErrors && Object.keys(newErrors).length > 0) {
+    handleValidationError(newErrors);
   }
 }, { immediate: true, deep: true });
 
-// Form validation
+// Form validation with semantic error handling
 const validateForm = (): boolean => {
-  const errors: Record<string, string> = {};
+  clearErrors();
 
   // Name validation
   if (!userData.value.name.trim()) {
-    errors.name = 'Full name is required';
+    setFieldError('name', 'Full name is required');
   } else if (userData.value.name.trim().length < 2) {
-    errors.name = 'Full name must be at least 2 characters';
+    setFieldError('name', 'Full name must be at least 2 characters');
   }
 
   // Email validation
   if (!userData.value.email.trim()) {
-    errors.email = 'Email is required';
+    setFieldError('email', 'Email is required');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.value.email)) {
-    errors.email = 'Please enter a valid email address';
+    setFieldError('email', 'Please enter a valid email address');
   }
 
   // Password validation (only for add mode)
   if (props.mode === 'add') {
     if (!userData.value.password) {
-      errors.password = 'Password is required';
+      setFieldError('password', 'Password is required');
     } else if (userData.value.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+      setFieldError('password', 'Password must be at least 8 characters');
     }
 
     if (!userData.value.confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password';
+      setFieldError('confirmPassword', 'Please confirm your password');
     } else if (userData.value.password !== userData.value.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
+      setFieldError('confirmPassword', 'Passwords do not match');
     }
   }
 
-  validationErrors.value = errors;
-  return Object.keys(errors).length === 0;
+  return !hasFieldError('name') && !hasFieldError('email') && 
+         (!hasFieldError('password') || props.mode === 'edit') && 
+         (!hasFieldError('confirmPassword') || props.mode === 'edit');
 };
 
-// Computed validation states
-const isNameValid = computed(() => !validationErrors.value.name);
-const isEmailValid = computed(() => !validationErrors.value.email);
-const isPasswordValid = computed(() => !validationErrors.value.password);
-const isConfirmPasswordValid = computed(() => !validationErrors.value.confirmPassword);
+// Computed validation states using semantic error handler
+const isNameValid = computed(() => !hasFieldError('name'));
+const isEmailValid = computed(() => !hasFieldError('email'));
+const isPasswordValid = computed(() => !hasFieldError('password'));
+const isConfirmPasswordValid = computed(() => !hasFieldError('confirmPassword'));
 
 const handleSave = () => {
   if (!validateForm()) {
@@ -176,14 +181,15 @@ const handleClose = () => {
               :class="{ 'border-red-500': !isNameValid }"
               placeholder="Enter full name"
               :disabled="isLoading"
+              @input="clearFieldError('name')"
             />
             <AlertCircleIcon 
               v-if="!isNameValid" 
               class="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 w-5 h-5" 
             />
           </div>
-          <p v-if="validationErrors.name" class="text-red-500 text-xs mt-1">
-            {{ validationErrors.name }}
+          <p v-if="getFieldError('name')" class="text-red-500 text-xs mt-1">
+            {{ getFieldError('name') }}
           </p>
         </div>
 
@@ -198,14 +204,15 @@ const handleClose = () => {
               :class="{ 'border-red-500': !isPasswordValid }"
               placeholder="Enter password (min 8 characters)"
               :disabled="isLoading"
+              @input="clearFieldError('password')"
             />
             <AlertCircleIcon 
               v-if="!isPasswordValid" 
               class="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 w-5 h-5" 
             />
           </div>
-          <p v-if="validationErrors.password" class="text-red-500 text-xs mt-1">
-            {{ validationErrors.password }}
+          <p v-if="getFieldError('password')" class="text-red-500 text-xs mt-1">
+            {{ getFieldError('password') }}
           </p>
         </div>
       </div>
@@ -223,14 +230,15 @@ const handleClose = () => {
               :class="{ 'border-red-500': !isEmailValid }"
               placeholder="Enter email address"
               :disabled="isLoading"
+              @input="clearFieldError('email')"
             />
             <AlertCircleIcon 
               v-if="!isEmailValid" 
               class="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 w-5 h-5" 
             />
           </div>
-          <p v-if="validationErrors.email" class="text-red-500 text-xs mt-1">
-            {{ validationErrors.email }}
+          <p v-if="getFieldError('email')" class="text-red-500 text-xs mt-1">
+            {{ getFieldError('email') }}
           </p>
         </div>
 
@@ -245,22 +253,23 @@ const handleClose = () => {
               :class="{ 'border-red-500': !isConfirmPasswordValid }"
               placeholder="Confirm password"
               :disabled="isLoading"
+              @input="clearFieldError('confirmPassword')"
             />
             <AlertCircleIcon 
               v-if="!isConfirmPasswordValid" 
               class="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 w-5 h-5" 
             />
           </div>
-          <p v-if="validationErrors.confirmPassword" class="text-red-500 text-xs mt-1">
-            {{ validationErrors.confirmPassword }}
+          <p v-if="getFieldError('confirmPassword')" class="text-red-500 text-xs mt-1">
+            {{ getFieldError('confirmPassword') }}
           </p>
         </div>
       </div>
     </div>
 
     <!-- General Error Message -->
-    <div v-if="validationErrors.general" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-      <p class="text-red-600 text-sm">{{ validationErrors.general }}</p>
+    <div v-if="getFieldError('general')" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+      <p class="text-red-600 text-sm">{{ getFieldError('general') }}</p>
     </div>
 
     <!-- Password Requirements (for add mode) -->

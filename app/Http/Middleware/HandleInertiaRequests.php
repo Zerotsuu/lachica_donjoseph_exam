@@ -53,7 +53,6 @@ class HandleInertiaRequests extends Middleware
                     'role' => $user->role,
                     'email_verified_at' => $user->email_verified_at,
                 ] : null,
-                'token' => session('sanctum_token'),
             ],
             'flash' => [
                 'message' => fn () => $request->session()->get('message'),

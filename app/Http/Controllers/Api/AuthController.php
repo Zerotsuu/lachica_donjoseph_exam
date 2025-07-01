@@ -79,10 +79,10 @@ class AuthController extends Controller
         $deviceName = $request->device_name ?? $this->getDefaultDeviceName($request);
         $expirationMinutes = $request->remember_me ? (60 * 24 * 30) : (60 * 24 * 7); // 30 days vs 7 days
 
-        // Create token with enhanced abilities and device info
+        // Create token with standard abilities
         $token = $user->createToken(
             $deviceName,
-            ['admin:read', 'admin:write', 'user:manage'],
+            ['*'],
             now()->addMinutes($expirationMinutes)
         );
 
@@ -110,7 +110,7 @@ class AuthController extends Controller
                 'expires_at' => now()->addMinutes($expirationMinutes)->toISOString(),
                 'expires_in' => $expirationMinutes * 60, // seconds
                 'device_name' => $deviceName,
-                'abilities' => ['admin:read', 'admin:write', 'user:manage'],
+                'abilities' => ['*'],
             ]
         ]);
     }
@@ -228,27 +228,67 @@ class AuthController extends Controller
     }
 
     /**
-     * Enhanced logout with device info
+     * Enhanced logout with comprehensive cleanup and device info
      */
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
         $currentToken = $request->user()->currentAccessToken();
+        
+        // Log the logout activity
+        \Log::info('API logout initiated', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'token_type' => $currentToken instanceof \Laravel\Sanctum\PersonalAccessToken ? 'api_token' : 'session'
+        ]);
+        
+        $responseData = [
+            'success' => true,
+        ];
         
         if ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
             $tokenName = $currentToken->name;
+            $tokenId = $currentToken->id;
             $currentToken->delete();
-            $message = "Logged out from {$tokenName} successfully";
+            
+            \Log::info('API token revoked', [
+                'user_id' => $user->id,
+                'token_id' => $tokenId,
+                'token_name' => $tokenName
+            ]);
+            
+            $responseData['message'] = "Logged out from {$tokenName} successfully";
         } else {
-            // For session-based authentication
+            // For session-based authentication - Enhanced cleanup
+            $sessionId = $request->session()->getId();
+            
+            // Clear specific session data
+            session()->forget('sanctum_token');
+            session()->forget('cart');
+            session()->forget('user_preferences');
+            session()->forget('temp_data');
+            
+            // Invalidate and regenerate session
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            $message = "Logged out from web session successfully";
+            
+            // Get the new CSRF token
+            $newCsrfToken = csrf_token();
+            
+            \Log::info('Session invalidated and token regenerated via API', [
+                'user_id' => $user->id,
+                'old_session_id' => $sessionId,
+                'new_session_id' => $request->session()->getId(),
+                'new_csrf_token' => substr($newCsrfToken, 0, 8) . '...' // Log partial token for debugging
+            ]);
+            
+            $responseData['message'] = "Logged out from web session successfully";
+            $responseData['csrf_token'] = $newCsrfToken;
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => $message
-        ]);
+        return response()->json($responseData);
     }
 
     /**

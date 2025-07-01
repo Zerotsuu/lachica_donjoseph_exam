@@ -16,9 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/api-admin.php'));
+            // API admin routes are now consolidated in routes/admin.php
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
@@ -31,16 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
         
-        // Add TrackUserActivity to Sanctum routes
-        $middleware->group('sanctum', [
-            \App\Http\Middleware\TrackUserActivity::class,
-        ]);
-        
-        // Register custom middleware aliases
+        // Register standard sanctum middleware aliases  
         $middleware->alias([
             'abilities' => \Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
             'ability' => \Laravel\Sanctum\Http\Middleware\CheckForAnyAbility::class,
-            'sanctum.admin' => \App\Http\Middleware\SanctumAdminMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -26,7 +26,7 @@ class SanctumAuthenticatedSessionController extends Controller
 
     /**
      * Handle an incoming authentication request.
-     * This now creates a Sanctum token and redirects based on user role.
+     * Using session-based authentication as recommended for SPAs.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
@@ -34,15 +34,8 @@ class SanctumAuthenticatedSessionController extends Controller
 
         $user = Auth::guard('web')->user();
 
-        // Create Sanctum token for the user with expiration
-        $token = $user->createToken(
-            'web-token', 
-            ['web:access'], 
-            now()->addDays(30) // 30 day expiration for web tokens
-        )->plainTextToken;
-
-        // Store token in session for frontend use
-        session(['sanctum_token' => $token]);
+        // For SPAs, we only need session-based authentication (no tokens)
+        $request->session()->regenerate();
 
         // Reset failed attempts on successful login
         $user->resetAccountLock();
@@ -58,28 +51,34 @@ class SanctumAuthenticatedSessionController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * Destroy an authenticated session using standard session-based logout.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        // Get user from web guard (since they logged in via web)
         $user = Auth::guard('web')->user();
         
         if ($user) {
-            // Revoke all Sanctum tokens for the user
-            $user->tokens()->delete();
+            // Log the logout activity
+            \Log::info('User logout initiated', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
         }
 
-        // Logout from web guard (clears session)
+        // Standard Laravel session-based logout
         Auth::guard('web')->logout();
 
-        // Clear session token
-        session()->forget('sanctum_token');
-        
-        // Clear and regenerate session
+        // Invalidate session and regenerate CSRF token
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        
+        \Log::info('Session invalidated and token regenerated');
 
+        // Set logout success message and redirect
+        session()->flash('success', 'You have been successfully logged out.');
+        
         return redirect('/');
     }
 } 

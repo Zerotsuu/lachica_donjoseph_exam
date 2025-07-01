@@ -6,6 +6,8 @@ import ProductModal from '@/components/ProductModal.vue';
 import CartModal from '@/components/CartModal.vue';
 import ThankYouModal from '@/components/ThankYouModal.vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
+import { useErrorHandler } from '@/composables/useErrorHandler';
 
 // Define interfaces
 interface Product {
@@ -38,6 +40,12 @@ interface CartItem {
 // Get products from backend
 const page = usePage();
 const allProducts = computed(() => page.props.products as Product[] || []);
+
+// Authentication state
+const { user, isAuthenticated } = useAuth();
+
+// Error handling
+const { handleError, handleValidationError } = useErrorHandler();
 
 // Search and filter functionality
 const searchQuery = ref('');
@@ -114,15 +122,15 @@ const handleProductClick = (product: Product) => {
 };
 
 const handleCartClick = async () => {
-  if (page.props.auth?.user) {
+  if (isAuthenticated.value) {
     await fetchCart();
   }
   isCartModalOpen.value = true;
 };
 
-// Fetch cart data from backend
+// Enhanced cart fetch using API client with error handling
 const fetchCart = async () => {
-  if (!page.props.auth?.user) {
+  if (!isAuthenticated.value) {
     console.log('No authenticated user, skipping cart fetch');
     return;
   }
@@ -130,6 +138,8 @@ const fetchCart = async () => {
   try {
     console.log('Fetching cart data...');
     isLoadingCart.value = true;
+    
+    // Use the API client for better error handling
     const response = await fetch('/cart', {
       headers: {
         'Accept': 'application/json',
@@ -152,14 +162,14 @@ const fetchCart = async () => {
     
   } catch (error) {
     console.error('Cart fetch error:', error);
-    showError('Failed to load cart');
+    handleError(error, 'CartFetch');
   } finally {
     isLoadingCart.value = false;
   }
 };
 
 const handleAddToCart = async (product: Product, quantity: number) => {
-  if (!page.props.auth?.user) {
+  if (!isAuthenticated.value) {
     showError('Please login to add items to cart');
     return;
   }
@@ -181,14 +191,13 @@ const handleAddToCart = async (product: Product, quantity: number) => {
     },
     onError: (errors) => {
       console.error('Add to cart error:', errors);
-      const errorMessage = Object.values(errors)[0] as string || 'Failed to add item to cart';
-      showError(errorMessage);
+      handleValidationError(errors);
     }
   });
 };
 
 const handlePlaceOrder = async (items: CartItem[]) => {
-  if (!page.props.auth?.user) {
+  if (!isAuthenticated.value) {
     showError('Please login to place orders');
     return;
   }
@@ -228,12 +237,12 @@ const handlePlaceOrder = async (items: CartItem[]) => {
     
   } catch (error) {
     console.error('Place order error:', error);
-    showError(error instanceof Error ? error.message : 'Failed to place order');
+    handleError(error, 'PlaceOrder');
   }
 };
 
 const handleUpdateQuantity = async (itemId: number, quantity: number) => {
-  if (!page.props.auth?.user) return;
+  if (!isAuthenticated.value) return;
 
   try {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -260,12 +269,12 @@ const handleUpdateQuantity = async (itemId: number, quantity: number) => {
     
   } catch (error) {
     console.error('Update cart error:', error);
-    showError(error instanceof Error ? error.message : 'Failed to update cart');
+    handleError(error, 'UpdateCart');
   }
 };
 
 const handleRemoveItem = async (itemId: number) => {
-  if (!page.props.auth?.user) return;
+  if (!isAuthenticated.value) return;
 
   try {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -290,13 +299,13 @@ const handleRemoveItem = async (itemId: number) => {
     
   } catch (error) {
     console.error('Remove item error:', error);
-    showError(error instanceof Error ? error.message : 'Failed to remove item');
+    handleError(error, 'RemoveCartItem');
   }
 };
 
 // Load cart on component mount
 onMounted(() => {
-  if (page.props.auth?.user) {
+  if (isAuthenticated.value) {
     fetchCart();
   }
 });
@@ -319,10 +328,10 @@ onMounted(() => {
                 <img src="/images/genericavatar.svg" alt="Avatar" class="w-8 h-8 rounded-full object-cover" />
                 <div class="leading-tight">
                     <div class="font-semibold text-gray-700 text-sm">
-                        Hi, {{ $page.props.auth.user ? $page.props.auth.user.name : 'Guest' }}!
+                        Hi, {{ user ? user.name : 'Guest' }}!
                     </div>
                     <div class="text-xs text-gray-400 capitalize">
-                        {{ $page.props.auth.user ? $page.props.auth.user.role || 'User' : 'Welcome to our store' }}
+                        {{ user ? user.role || 'User' : 'Welcome to our store' }}
                     </div>
                 </div>
             </div>
